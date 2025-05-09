@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Make a Sale</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Sale Form</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>Customer:</label>
+        <select name="customerID">
+            {% for c in customers %}
+                <option value="{{ c[0] }}">{{ c[1] }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label>Medicine:</label>
+        <select name="medicineID">
+            {% for m in medicines %}
+                <option value="{{ m[0] }}">{{ m[1] }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label>Quantity:</label><input type="number" name="quantity"><br>
+        <label>Unit Price:</label><input type="text" name="unitPrice"><br>
+        <label>Discount:</label><input type="text" name="discount"><br>
+        <label>Tax:</label><input type="text" name="tax"><br>
+        <label>Payment Method:</label><input type="text" name="paymentMethod"><br>
+
+        <button type="submit">Submit Sale</button>
+    </form>
+</body>
+</html>

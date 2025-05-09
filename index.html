@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Medical Inventory</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Medicines List</h1>
+    <table border="1">
+        <tr>
+            <th>Title</th><th>Stock</th><th>Expiry</th><th>Unit Price</th>
+        </tr>
+        {% for med in medicines %}
+        <tr>
+            <td>{{ med.title }}</td>
+            <td>{{ med.StockQuantity }}</td>
+            <td>{{ med.ExpiryDate }}</td>
+            <td>{{ med.UnitPrice }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="/sale">Make Sale</a>
+</body>
+</html>
