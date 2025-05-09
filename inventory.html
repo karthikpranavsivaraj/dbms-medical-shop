@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management - MedShop Zenith</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with Navigation -->
+        <header class="main-header">
+            <div class="brand">
+                <i class="fas fa-clinic-medical"></i>
+                <h1>MedShop Zenith</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="/sale"><i class="fas fa-cash-register"></i> Sales</a></li>
+                    <li class="active"><a href="/inventory"><i class="fas fa-pills"></i> Inventory</a></li>
+                    <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                </ul>
+            </nav>
+            <div class="user-menu">
+                <button class="btn-icon"><i class="fas fa-bell"></i></button>
+                <button class="btn-icon"><i class="fas fa-user-circle"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="fas fa-pills"></i> Inventory Management</h2>
+                <nav class="breadcrumb">
+                    <a href="/">Dashboard</a> / 
+                    <span>Inventory</span>
+                </nav>
+            </div>
+
+            <!-- Inventory Stats -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-pills"></i></div>
+                    <div class="card-content">
+                        <h3>Total Medicines</h3>
+                        <p class="card-value">{{ medicines|length }}</p>
+                        <p class="card-trend">In inventory</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(231, 76, 60, 0.1); color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="card-content">
+                        <h3>Low Stock</h3>
+                        <p class="card-value">{{ low_stock|default(8) }}</p>
+                        <p class="card-trend">Below threshold</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(243, 156, 18, 0.1); color: #f39c12;"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="card-content">
+                        <h3>Expiring Soon</h3>
+                        <p class="card-value">{{ expiring_soon|default(12) }}</p>
+                        <p class="card-trend">Within 30 days</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71;"><i class="fas fa-truck"></i></div>
+                    <div class="card-content">
+                        <h3>Last Restock</h3>
+                        <p class="card-value">3 days ago</p>
+                        <p class="card-trend">15 items added</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Actions -->
+            <div class="action-bar">
+                <div class="search-container">
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search medicines...">
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-outline">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn btn-outline">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Medicine
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h3>Medicine Inventory</h3>
+                    <div class="view-options">
+                        <button class="btn-icon active"><i class="fas fa-table"></i></button>
+                        <button class="btn-icon"><i class="fas fa-th-large"></i></button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>Medicine Name</th>
+                                <th>Specification</th>
+                                <th>Company</th>
+                                <th>Batch No.</th>
+                                <th>Expiry Date</th>
+                                <th>Stock</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for medicine in medicines %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="row-select">
+                                </td>
+                                <td>{{ medicine.title }}</td>
+                                <td>{{ medicine.Specification }}</td>
+                                <td>{{ medicine.CompanyName }}</td>
+                                <td>{{ medicine.BatchNumber }}</td>
+                                <td>{{ medicine.ExpiryDate }}</td>
+                                <td>{{ medicine.StockQuantity }}</td>
+                                <td>₹{{ medicine.UnitPrice }}</td>
+                                <td>
+                                    {% if medicine.StockQuantity < 10 %}
+                                    <span class="status-badge warning">Low Stock</span>
+                                    {% else %}
+                                    <span class="status-badge success">In Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions">
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- Sample data if no medicines are available -->
+                            {% if not medicines or medicines|length == 0 %}
+                            <tr>
+                                <td><input type="checkbox" class="row-select"></td>
+                                <td>Paracetamol</td>
+                                <td>500mg Tablet</td>
+                                <td>Cipla</td>
+                                <td>B12345</td>
+                                <td>2025-12-31</td>
+                                <td>120</td>
+                                <td>₹2.50</td>
+                                <td><span class="status-badge success">In Stock</span></td>
+                                <td class="actions">
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="row-select"></td>
+                                <td>Amoxicillin</td>
+                                <td>250mg Capsule</td>
+                                <td>Sun Pharma</td>
+                                <td>B67890</td>
+                                <td>2024-08-15</td>
+                                <td>8</td>
+                                <td>₹5.75</td>
+                                <td><span class="status-badge warning">Low Stock</span></td>
+                                <td class="actions">
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="row-select"></td>
+                                <td>Cetirizine</td>
+                                <td>10mg Tablet</td>
+                                <td>Dr. Reddy's</td>
+                                <td>B54321</td>
+                                <td>2025-06-30</td>
+                                <td>85</td>
+                                <td>₹3.20</td>
+                                <td><span class="status-badge success">In Stock</span></td>
+                                <td class="actions">
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="pagination-info">Showing 1 to 10 of 24 entries</span>
+                    <div class="pagination-controls">
+                        <button class="btn-icon" disabled><i class="fas fa-chevron-left"></i></button>
+                        <button class="btn-page active">1</button>
+                        <button class="btn-page">2</button>
+                        <button class="btn-page">3</button>
+                        <button class="btn-icon"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 MedShop Zenith. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
