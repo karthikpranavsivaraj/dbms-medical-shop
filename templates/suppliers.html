@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Management - MedShop Zenith</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/supplier-styles.css">
+    <link rel="stylesheet" href="/static/notifications.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with Navigation -->
+        <header class="main-header">
+            <div class="brand">
+                <i class="fas fa-clinic-medical"></i>
+                <h1>MedShop Zenith</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="/sale"><i class="fas fa-cash-register"></i> Sales</a></li>
+                    <li><a href="/inventory"><i class="fas fa-pills"></i> Inventory</a></li>
+                    <li class="active"><a href="/suppliers"><i class="fas fa-truck"></i> Suppliers</a></li>
+                    <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    {% if current_user.role == 'Admin' %}
+                    <li><a href="/users"><i class="fas fa-users"></i> Users</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <div class="user-menu">
+                <button class="btn-icon"><i class="fas fa-bell"></i></button>
+                <div class="user-dropdown">
+                    <button class="btn-icon"><i class="fas fa-user-circle"></i></button>
+                    <div class="dropdown-menu">
+                        <a href="/profile"><i class="fas fa-user"></i> Profile</a>
+                        {% if current_user.role == 'Admin' %}
+                        <a href="/users"><i class="fas fa-users-cog"></i> Manage Users</a>
+                        {% endif %}
+                        <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="fas fa-truck"></i> Supplier Management</h2>
+                <nav class="breadcrumb">
+                    <a href="/">Dashboard</a> / 
+                    <span>Suppliers</span>
+                </nav>
+            </div>
+
+            <!-- Supplier Stats -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(52, 152, 219, 0.1); color: #3498db;"><i class="fas fa-truck"></i></div>
+                    <div class="card-content">
+                        <h3>Total Suppliers</h3>
+                        <p class="card-value">{{ suppliers|length }}</p>
+                        <p class="card-trend">Active suppliers</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71;"><i class="fas fa-star"></i></div>
+                    <div class="card-content">
+                        <h3>Top Rated</h3>
+                        <p class="card-value">{{ top_rated|default(3) }}</p>
+                        <p class="card-trend">Rating > 4.5</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(155, 89, 182, 0.1); color: #9b59b6;"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="card-content">
+                        <h3>Recent Orders</h3>
+                        <p class="card-value">{{ recent_orders|default(5) }}</p>
+                        <p class="card-trend">Last 30 days</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(243, 156, 18, 0.1); color: #f39c12;"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="card-content">
+                        <h3>Pending Orders</h3>
+                        <p class="card-value">{{ pending_orders|default(2) }}</p>
+                        <p class="card-trend">Awaiting delivery</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Actions -->
+            <div class="action-bar">
+                <div class="search-container">
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="supplier-search" placeholder="Search suppliers...">
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-outline" id="filter-btn">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn btn-outline" id="export-btn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-primary" id="add-supplier-btn">
+                        <i class="fas fa-plus"></i> Add Supplier
+                    </button>
+                </div>
+            </div>
+
+            <!-- Supplier Table -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h3>Supplier Directory</h3>
+                    <div class="view-options">
+                        <button class="btn-icon active"><i class="fas fa-table"></i></button>
+                        <button class="btn-icon"><i class="fas fa-th-large"></i></button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="suppliers-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>Supplier Name</th>
+                                <th>Contact Number</th>
+                                <th>Email</th>
+                                <th>Address</th>
+                                <th>Rating</th>
+                                <th>Last Order</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier in suppliers %}
+                            <tr data-id="{{ supplier.SupplierID }}">
+                                <td>
+                                    <input type="checkbox" class="row-select">
+                                </td>
+                                <td>{{ supplier.SupplierName }}</td>
+                                <td>{{ supplier.ContactNumber }}</td>
+                                <td>{{ supplier.Email }}</td>
+                                <td>{{ supplier.SupplierAddress }}</td>
+                                <td>
+                                    <div class="rating">
+                                        {% set rating = supplier.SupplierRating|float %}
+                                        {% for i in range(1, 6) %}
+                                            {% if i <= rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% elif i <= rating + 0.5 %}
+                                                <i class="fas fa-star-half-alt"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span>{{ rating }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ supplier.last_order|default('N/A') }}</td>
+                                <td class="actions">
+                                    <button class="btn-icon view-supplier" data-id="{{ supplier.SupplierID }}" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-icon edit-supplier" data-id="{{ supplier.SupplierID }}" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon delete-supplier" data-id="{{ supplier.SupplierID }}" title="Delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- Sample data if no suppliers are available -->
+                            {% if not suppliers or suppliers|length == 0 %}
+                            <tr>
+                                <td colspan="8" class="text-center">No suppliers found in the database</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="pagination-info">Showing 1 to {{ suppliers|length }} of {{ suppliers|length }} entries</span>
+                    <div class="pagination-controls">
+                        <button class="btn-icon" disabled><i class="fas fa-chevron-left"></i></button>
+                        <button class="btn-page active">1</button>
+                        <button class="btn-icon" disabled><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 MedShop Zenith. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Supplier Form Modal -->
+    <div class="modal" id="supplier-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Supplier</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="supplier-form">
+                    <input type="hidden" id="supplier-id">
+                    <div class="form-group">
+                        <label for="supplier-name">Supplier Name</label>
+                        <input type="text" id="supplier-name" name="SupplierName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplier-contact">Contact Number</label>
+                            <input type="tel" id="supplier-contact" name="ContactNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-email">Email Address</label>
+                            <input type="email" id="supplier-email" name="Email" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-address">Address</label>
+                        <textarea id="supplier-address" name="SupplierAddress" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier-rating">Rating (1-5)</label>
+                        <div class="rating-input">
+                            <input type="range" id="supplier-rating" name="SupplierRating" min="1" max="5" step="0.1" value="3">
+                            <span id="rating-value">3.0</span>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" id="cancel-supplier">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="save-supplier">Save Supplier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Details Modal -->
+    <div class="modal" id="supplier-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Supplier Details</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="supplier-details">
+                    <div class="supplier-header">
+                        <h4 id="detail-supplier-name">Supplier Name</h4>
+                        <div class="supplier-rating" id="detail-supplier-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <i class="far fa-star"></i>
+                            <span>3.5</span>
+                        </div>
+                    </div>
+                    <div class="supplier-info">
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <span id="detail-supplier-contact">Contact Number</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <span id="detail-supplier-email">Email Address</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span id="detail-supplier-address">Address</span>
+                        </div>
+                    </div>
+                    <div class="supplier-stats">
+                        <div class="stat-item">
+                            <h5>Total Orders</h5>
+                            <p id="detail-total-orders">12</p>
+                        </div>
+                        <div class="stat-item">
+                            <h5>Last Order</h5>
+                            <p id="detail-last-order">2023-05-15</p>
+                        </div>
+                        <div class="stat-item">
+                            <h5>Total Spend</h5>
+                            <p id="detail-total-spend">₹45,250</p>
+                        </div>
+                    </div>
+                    <div class="supplier-actions">
+                        <button class="btn btn-outline" id="place-order-btn">
+                            <i class="fas fa-shopping-cart"></i> Place Order
+                        </button>
+                        <button class="btn btn-primary" id="detail-edit-btn">
+                            <i class="fas fa-edit"></i> Edit Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this supplier? This action cannot be undone.</p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-delete">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script src="/static/crud.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const addSupplierBtn = document.getElementById('add-supplier-btn');
+            const supplierModal = document.getElementById('supplier-modal');
+            const supplierDetailsModal = document.getElementById('supplier-details-modal');
+            const deleteModal = document.getElementById('delete-modal');
+            const supplierForm = document.getElementById('supplier-form');
+            const modalTitle = document.getElementById('modal-title');
+            const supplierIdInput = document.getElementById('supplier-id');
+            const cancelSupplierBtn = document.getElementById('cancel-supplier');
+            const cancelDeleteBtn = document.getElementById('cancel-delete');
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            const closeModalBtns = document.querySelectorAll('.close-modal');
+            const supplierSearchInput = document.getElementById('supplier-search');
+            const supplierRatingInput = document.getElementById('supplier-rating');
+            const ratingValueDisplay = document.getElementById('rating-value');
+            const placeOrderBtn = document.getElementById('place-order-btn');
+            const detailEditBtn = document.getElementById('detail-edit-btn');
+            
+            let currentDeleteId = null;
+            let currentViewId = null;
+            
+            // Update rating value display when slider changes
+            supplierRatingInput.addEventListener('input', function() {
+                ratingValueDisplay.textContent = parseFloat(this.value).toFixed(1);
+            });
+            
+            // Open modal for adding a new supplier
+            addSupplierBtn.addEventListener('click', function() {
+                modalTitle.textContent = 'Add New Supplier';
+                supplierForm.reset();
+                supplierIdInput.value = '';
+                ratingValueDisplay.textContent = '3.0';
+                supplierModal.classList.add('show');
+            });
+            
+            // Close modals
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    supplierModal.classList.remove('show');
+                    supplierDetailsModal.classList.remove('show');
+                    deleteModal.classList.remove('show');
+                });
+            });
+            
+            cancelSupplierBtn.addEventListener('click', function() {
+                supplierModal.classList.remove('show');
+            });
+            
+            cancelDeleteBtn.addEventListener('click', function() {
+                deleteModal.classList.remove('show');
+            });
+            
+            // Handle form submission for adding/updating supplier
+            supplierForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Collect form data
+                const formData = {
+                    SupplierName: document.getElementById('supplier-name').value,
+                    ContactNumber: document.getElementById('supplier-contact').value,
+                    Email: document.getElementById('supplier-email').value,
+                    SupplierAddress: document.getElementById('supplier-address').value,
+                    SupplierRating: parseFloat(document.getElementById('supplier-rating').value)
+                };
+                
+                try {
+                    const supplierId = supplierIdInput.value;
+                    
+                    if (supplierId) {
+                        // Update existing supplier
+                        await MedShopCRUD.updateSupplier(supplierId, formData);
+                    } else {
+                        // Add new supplier
+                        await MedShopCRUD.addSupplier(formData);
+                    }
+                    
+                    // Close the modal and refresh the page
+                    supplierModal.classList.remove('show');
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Error saving supplier:', error);
+                }
+            });
+            
+            // Handle view button clicks
+            document.addEventListener('click', async function(e) {
+                if (e.target.closest('.view-supplier')) {
+                    const btn = e.target.closest('.view-supplier');
+                    currentViewId = btn.getAttribute('data-id');
+                    
+                    try {
+                        const supplier = await MedShopCRUD.getSupplier(currentViewId);
+                        
+                        if (supplier) {
+                            // Fill the details modal with supplier data
+                            document.getElementById('detail-supplier-name').textContent = supplier.SupplierName;
+                            document.getElementById('detail-supplier-contact').textContent = supplier.ContactNumber;
+                            document.getElementById('detail-supplier-email').textContent = supplier.Email;
+                            document.getElementById('detail-supplier-address').textContent = supplier.SupplierAddress;
+                            
+                            // Set the rating stars
+                            const ratingContainer = document.getElementById('detail-supplier-rating');
+                            ratingContainer.innerHTML = '';
+                            
+                            const rating = parseFloat(supplier.SupplierRating);
+                            for (let i = 1; i <= 5; i++) {
+                                const star = document.createElement('i');
+                                if (i <= rating) {
+                                    star.className = 'fas fa-star';
+                                } else if (i <= rating + 0.5) {
+                                    star.className = 'fas fa-star-half-alt';
+                                } else {
+                                    star.className = 'far fa-star';
+                                }
+                                ratingContainer.appendChild(star);
+                            }
+                            
+                            const ratingText = document.createElement('span');
+                            ratingText.textContent = rating.toFixed(1);
+                            ratingContainer.appendChild(ratingText);
+                            
+                            // For now, we'll use placeholder data for the stats
+                            // In a real app, you would fetch this data from the server
+                            document.getElementById('detail-total-orders').textContent = '12';
+                            document.getElementById('detail-last-order').textContent = '2023-05-15';
+                            document.getElementById('detail-total-spend').textContent = '₹45,250';
+                            
+                            // Show the modal
+                            supplierDetailsModal.classList.add('show');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching supplier details:', error);
+                    }
+                }
+            });
+            
+            // Handle edit button clicks
+            document.addEventListener('click', async function(e) {
+                if (e.target.closest('.edit-supplier')) {
+                    const btn = e.target.closest('.edit-supplier');
+                    const supplierId = btn.getAttribute('data-id');
+                    
+                    try {
+                        const supplier = await MedShopCRUD.getSupplier(supplierId);
+                        
+                        if (supplier) {
+                            // Fill the form with supplier data
+                            modalTitle.textContent = 'Edit Supplier';
+                            supplierIdInput.value = supplier.SupplierID;
+                            document.getElementById('supplier-name').value = supplier.SupplierName || '';
+                            document.getElementById('supplier-contact').value = supplier.ContactNumber || '';
+                            document.getElementById('supplier-email').value = supplier.Email || '';
+                            document.getElementById('supplier-address').value = supplier.SupplierAddress || '';
+                            document.getElementById('supplier-rating').value = supplier.SupplierRating || 3.0;
+                            ratingValueDisplay.textContent = parseFloat(supplier.SupplierRating || 3.0).toFixed(1);
+                            
+                            // Show the modal
+                            supplierModal.classList.add('show');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching supplier details:', error);
+                    }
+                }
+            });
+            
+            // Handle edit from details modal
+            detailEditBtn.addEventListener('click', function() {
+                if (currentViewId) {
+                    // Close the details modal
+                    supplierDetailsModal.classList.remove('show');
+                    
+                    // Trigger the edit action
+                    const editBtn = document.querySelector(`.edit-supplier[data-id="${currentViewId}"]`);
+                    if (editBtn) {
+                        editBtn.click();
+                    }
+                }
+            });
+            
+            // Handle delete button clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-supplier')) {
+                    const btn = e.target.closest('.delete-supplier');
+                    currentDeleteId = btn.getAttribute('data-id');
+                    deleteModal.classList.add('show');
+                }
+            });
+            
+            // Handle delete confirmation
+            confirmDeleteBtn.addEventListener('click', async function() {
+                if (currentDeleteId) {
+                    try {
+                        await MedShopCRUD.deleteSupplier(currentDeleteId);
+                        deleteModal.classList.remove('show');
+                        
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-id="${currentDeleteId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                        
+                        // Update the total count
+                        const totalElement = document.querySelector('.card-value');
+                        if (totalElement) {
+                            const currentTotal = parseInt(totalElement.textContent);
+                            totalElement.textContent = currentTotal - 1;
+                        }
+                    } catch (error) {
+                        console.error('Error deleting supplier:', error);
+                    }
+                }
+            });
+            
+            // Search functionality
+            supplierSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#suppliers-table tbody tr');
+                
+                rows.forEach(row => {
+                    const supplierName = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                    const contactNumber = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+                    const email = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
+                    
+                    if (supplierName.includes(searchTerm) || 
+                        contactNumber.includes(searchTerm) || 
+                        email.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Place order button (placeholder functionality)
+            placeOrderBtn.addEventListener('click', function() {
+                MedShopCRUD.showNotification('Order placement will be implemented in a future update', 'info');
+                supplierDetailsModal.classList.remove('show');
+            });
+        });
+    </script>
+    
+
+</body>
+</html>
