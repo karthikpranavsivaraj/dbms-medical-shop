@@ -1,35 +1,19 @@
-<<<<<<< HEAD
+# db_config.py
+
 import mysql.connector
-__all__ = ['get_connection']
+from mysql.connector import Error
 
 def get_connection():
     try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="karthik",
-            password="karthik2005",
-            database="MedicalShopDB"
+        connection = mysql.connector.connect(
+            host='localhost',       # Change if your DB is hosted elsewhere
+            user='karthik',   # Replace with your MySQL username
+            password='karthik2005',  # Replace with your MySQL password
+            database='medicalshopdb'    # Replace with your database name
         )
-        print("✅ Database connection successful.")
-        return conn
-    except mysql.connector.Error as err:
-        print("❌ Database connection failed:", err)
+        if connection.is_connected():
+            print("✅ Successfully connected to the database")
+            return connection
+    except Error as e:
+        print("❌ Error while connecting to MySQL", e)
         return None
-=======
-import mysql.connector
-__all__ = ['get_connection']
-
-def get_connection():
-    try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="karthik",
-            password="karthik2005",
-            database="MedicalShopDB"
-        )
-        print("✅ Database connection successful.")
-        return conn
-    except mysql.connector.Error as err:
-        print("❌ Database connection failed:", err)
-        return None
->>>>>>> 03a9479 (hi)

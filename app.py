@@ -1,63 +1,9 @@
-<<<<<<< HEAD
-from flask import Flask, render_template, request, redirect, flash
-from db_config import get_connection
-
-app = Flask(__name__)
-app.secret_key = 'your_secret_key'
-
-@app.route('/')
-def index():
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM Medicines")
-    medicines = cursor.fetchall()
-    conn.close()
-    return render_template("index.html", medicines=medicines)
-
-@app.route('/sale', methods=['GET', 'POST'])
-def make_sale():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    if request.method == 'POST':
-        customerID = int(request.form['customerID'])
-        medicineID = int(request.form['medicineID'])
-        quantity = int(request.form['quantity'])
-        unitPrice = float(request.form['unitPrice'])
-        discount = float(request.form['discount'])
-        tax = float(request.form['tax'])
-        paymentMethod = request.form['paymentMethod']
-
-        try:
-            cursor.callproc("MakeSale", [
-                customerID, medicineID, quantity,
-                unitPrice, discount, tax, paymentMethod
-            ])
-            conn.commit()
-            flash("Sale successful!", "success")
-        except Exception as e:
-            conn.rollback()
-            flash(f"Error: {e}", "danger")
-
-        conn.close()
-        return redirect('/sale')
-
-    # GET: load form
-    cursor.execute("SELECT * FROM Customers")
-    customers = cursor.fetchall()
-    cursor.execute("SELECT * FROM Medicines")
-    medicines = cursor.fetchall()
-    conn.close()
-    return render_template("sale_form.html", customers=customers, medicines=medicines)
-
-if __name__ == '__main__':
-    app.run(debug=True)
-=======
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import functools
+import json
 from db_config import get_connection
 
 app = Flask(__name__)
@@ -283,10 +229,50 @@ def inventory():
     expiring_soon = cursor.fetchone()['count']
     
     conn.close()
-    return render_template("inventory.html", 
+    return render_template("inventory_crud.html", 
                           medicines=medicines,
                           low_stock=low_stock,
                           expiring_soon=expiring_soon)
+
+@app.route('/suppliers')
+@login_required
+def suppliers():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all suppliers
+    cursor.execute("SELECT * FROM Suppliers")
+    suppliers = cursor.fetchall()
+    
+    # Get top rated suppliers (rating > 4.5)
+    cursor.execute("SELECT COUNT(*) as count FROM Suppliers WHERE SupplierRating > 4.5")
+    top_rated = cursor.fetchone()['count']
+    
+    # Get recent orders (last 30 days)
+    cursor.execute("""
+        SELECT COUNT(*) as count FROM Purchases 
+        WHERE DateTime >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    """)
+    recent_orders = cursor.fetchone()['count']
+    
+    # For each supplier, get their last order date
+    for supplier in suppliers:
+        cursor.execute("""
+            SELECT DATE(DateTime) as LastOrderDate 
+            FROM Purchases 
+            WHERE SupplierID = %s 
+            ORDER BY DateTime DESC 
+            LIMIT 1
+        """, (supplier['SupplierID'],))
+        last_order = cursor.fetchone()
+        if last_order:
+            supplier['last_order'] = last_order['LastOrderDate']
+    
+    conn.close()
+    return render_template("suppliers.html", 
+                          suppliers=suppliers,
+                          top_rated=top_rated,
+                          recent_orders=recent_orders)
 
 @app.route('/reports')
 @login_required
@@ -309,6 +295,254 @@ def get_medicine(medicine_id):
         return jsonify(medicine)
     else:
         return jsonify({"error": "Medicine not found"}), 404
+
+# API endpoints for medicines
+@app.route('/api/medicines')
+@login_required
+def get_medicines():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM Medicines")
+    medicines = cursor.fetchall()
+    
+    conn.close()
+    return jsonify(medicines)
+
+@app.route('/api/medicine', methods=['POST'])
+@login_required
+def add_medicine():
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        data = request.json
+        
+        # Extract medicine data
+        title = data.get('title')
+        specification = data.get('Specification')
+        stock_quantity = data.get('StockQuantity')
+        unit_price = data.get('UnitPrice')
+        expiry_date = data.get('ExpiryDate')
+        
+        # Validate required fields
+        if not title or not specification:
+            return jsonify({"success": False, "error": "Title and specification are required"}), 400
+        
+        # Insert medicine
+        cursor.execute("""
+            INSERT INTO Medicines (title, Specification, StockQuantity, UnitPrice, ExpiryDate)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (title, specification, stock_quantity, unit_price, expiry_date))
+        
+        medicine_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": "Medicine added successfully",
+            "MedicineID": medicine_id
+        })
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/medicine/<int:medicine_id>', methods=['PUT'])
+@login_required
+def update_medicine(medicine_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        data = request.json
+        
+        # Extract medicine data
+        title = data.get('title')
+        specification = data.get('Specification')
+        stock_quantity = data.get('StockQuantity')
+        unit_price = data.get('UnitPrice')
+        expiry_date = data.get('ExpiryDate')
+        
+        # Validate required fields
+        if not title or not specification:
+            return jsonify({"success": False, "error": "Title and specification are required"}), 400
+        
+        # Update medicine
+        cursor.execute("""
+            UPDATE Medicines
+            SET title = %s, Specification = %s, StockQuantity = %s, UnitPrice = %s, ExpiryDate = %s
+            WHERE MedicineID = %s
+        """, (title, specification, stock_quantity, unit_price, expiry_date, medicine_id))
+        
+        conn.commit()
+        
+        # Check if medicine was found and updated
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "error": "Medicine not found"}), 404
+        
+        conn.close()
+        return jsonify({"success": True, "message": "Medicine updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/medicine/<int:medicine_id>', methods=['DELETE'])
+@login_required
+def delete_medicine(medicine_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM Medicines WHERE MedicineID = %s", (medicine_id,))
+        conn.commit()
+        
+        # Check if medicine was found and deleted
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "error": "Medicine not found"}), 404
+        
+        conn.close()
+        return jsonify({"success": True, "message": "Medicine deleted successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# API endpoints for suppliers
+@app.route('/api/suppliers')
+@login_required
+def get_suppliers():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM Suppliers")
+    suppliers = cursor.fetchall()
+    
+    conn.close()
+    return jsonify(suppliers)
+
+@app.route('/api/supplier/<int:supplier_id>')
+@login_required
+def get_supplier(supplier_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM Suppliers WHERE SupplierID = %s", (supplier_id,))
+    supplier = cursor.fetchone()
+    
+    conn.close()
+    
+    if supplier:
+        return jsonify(supplier)
+    else:
+        return jsonify({"error": "Supplier not found"}), 404
+
+@app.route('/api/supplier', methods=['POST'])
+@login_required
+def add_supplier():
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        data = request.json
+        
+        # Extract supplier data
+        supplier_name = data.get('SupplierName')
+        contact_number = data.get('ContactNumber')
+        email = data.get('Email')
+        supplier_address = data.get('SupplierAddress')
+        supplier_rating = data.get('SupplierRating', 3.0)
+        
+        # Validate required fields
+        if not supplier_name or not contact_number:
+            return jsonify({"success": False, "error": "Supplier name and contact number are required"}), 400
+        
+        # Insert supplier
+        cursor.execute("""
+            INSERT INTO Suppliers (SupplierName, ContactNumber, Email, SupplierAddress, SupplierRating)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (supplier_name, contact_number, email, supplier_address, supplier_rating))
+        
+        supplier_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": "Supplier added successfully",
+            "SupplierID": supplier_id
+        })
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/supplier/<int:supplier_id>', methods=['PUT'])
+@login_required
+def update_supplier(supplier_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        data = request.json
+        
+        # Extract supplier data
+        supplier_name = data.get('SupplierName')
+        contact_number = data.get('ContactNumber')
+        email = data.get('Email')
+        supplier_address = data.get('SupplierAddress')
+        supplier_rating = data.get('SupplierRating')
+        
+        # Validate required fields
+        if not supplier_name or not contact_number:
+            return jsonify({"success": False, "error": "Supplier name and contact number are required"}), 400
+        
+        # Update supplier
+        cursor.execute("""
+            UPDATE Suppliers
+            SET SupplierName = %s, ContactNumber = %s, Email = %s, SupplierAddress = %s, SupplierRating = %s
+            WHERE SupplierID = %s
+        """, (supplier_name, contact_number, email, supplier_address, supplier_rating, supplier_id))
+        
+        conn.commit()
+        
+        # Check if supplier was found and updated
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "error": "Supplier not found"}), 404
+        
+        conn.close()
+        return jsonify({"success": True, "message": "Supplier updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/supplier/<int:supplier_id>', methods=['DELETE'])
+@login_required
+def delete_supplier(supplier_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM Suppliers WHERE SupplierID = %s", (supplier_id,))
+        conn.commit()
+        
+        # Check if supplier was found and deleted
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "error": "Supplier not found"}), 404
+        
+        conn.close()
+        return jsonify({"success": True, "message": "Supplier deleted successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # Create a user management page (admin only)
 @app.route('/users')
@@ -349,4 +583,3 @@ if __name__ == '__main__':
     # Initialize the database with default admin user
     init_db()
     app.run(debug=True)
->>>>>>> 03a9479 (hi)
