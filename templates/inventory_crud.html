@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management - MedShop Zenith</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with Navigation -->
+        <header class="main-header">
+            <div class="brand">
+                <i class="fas fa-clinic-medical"></i>
+                <h1>MedShop Zenith</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="/sale"><i class="fas fa-cash-register"></i> Sales</a></li>
+                    <li class="active"><a href="/inventory"><i class="fas fa-pills"></i> Inventory</a></li>
+                    <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    {% if current_user.role == 'Admin' %}
+                    <li><a href="/users"><i class="fas fa-users"></i> Users</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <div class="user-menu">
+                <button class="btn-icon"><i class="fas fa-bell"></i></button>
+                <div class="user-dropdown">
+                    <button class="btn-icon"><i class="fas fa-user-circle"></i></button>
+                    <div class="dropdown-menu">
+                        <a href="/profile"><i class="fas fa-user"></i> Profile</a>
+                        {% if current_user.role == 'Admin' %}
+                        <a href="/users"><i class="fas fa-users-cog"></i> Manage Users</a>
+                        {% endif %}
+                        <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="fas fa-pills"></i> Inventory Management</h2>
+                <nav class="breadcrumb">
+                    <a href="/">Dashboard</a> / 
+                    <span>Inventory</span>
+                </nav>
+            </div>
+
+            <!-- Inventory Stats -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-pills"></i></div>
+                    <div class="card-content">
+                        <h3>Total Medicines</h3>
+                        <p class="card-value">{{ medicines|length }}</p>
+                        <p class="card-trend">In inventory</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(231, 76, 60, 0.1); color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="card-content">
+                        <h3>Low Stock</h3>
+                        <p class="card-value">{{ low_stock|default(8) }}</p>
+                        <p class="card-trend">Below threshold</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(243, 156, 18, 0.1); color: #f39c12;"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="card-content">
+                        <h3>Expiring Soon</h3>
+                        <p class="card-value">{{ expiring_soon|default(12) }}</p>
+                        <p class="card-trend">Within 30 days</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71;"><i class="fas fa-truck"></i></div>
+                    <div class="card-content">
+                        <h3>Last Restock</h3>
+                        <p class="card-value">3 days ago</p>
+                        <p class="card-trend">15 items added</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Actions -->
+            <div class="action-bar">
+                <div class="search-container">
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="medicine-search" placeholder="Search medicines...">
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-outline" id="filter-btn">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn btn-outline" id="export-btn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-primary" id="add-medicine-btn">
+                        <i class="fas fa-plus"></i> Add Medicine
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h3>Medicine Inventory</h3>
+                    <div class="view-options">
+                        <button class="btn-icon active"><i class="fas fa-table"></i></button>
+                        <button class="btn-icon"><i class="fas fa-th-large"></i></button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="medicines-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>Medicine Name</th>
+                                <th>Specification</th>
+                                <th>Company</th>
+                                <th>Batch No.</th>
+                                <th>Expiry Date</th>
+                                <th>Stock</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for medicine in medicines %}
+                            <tr data-id="{{ medicine.MedicineID }}">
+                                <td>
+                                    <input type="checkbox" class="row-select">
+                                </td>
+                                <td>{{ medicine.title }}</td>
+                                <td>{{ medicine.Specification }}</td>
+                                <td>{{ medicine.CompanyName }}</td>
+                                <td>{{ medicine.BatchNumber }}</td>
+                                <td>{{ medicine.ExpiryDate }}</td>
+                                <td>{{ medicine.StockQuantity }}</td>
+                                <td>₹{{ medicine.UnitPrice }}</td>
+                                <td>
+                                    {% if medicine.StockQuantity < 10 %}
+                                    <span class="status-badge warning">Low Stock</span>
+                                    {% else %}
+                                    <span class="status-badge success">In Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions">
+                                    <button class="btn-icon edit-medicine" data-id="{{ medicine.MedicineID }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon delete-medicine" data-id="{{ medicine.MedicineID }}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- Sample data if no medicines are available -->
+                            {% if not medicines or medicines|length == 0 %}
+                            <tr>
+                                <td colspan="10" class="text-center">No medicines found in inventory</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="pagination-info">Showing 1 to {{ medicines|length }} of {{ medicines|length }} entries</span>
+                    <div class="pagination-controls">
+                        <button class="btn-icon" disabled><i class="fas fa-chevron-left"></i></button>
+                        <button class="btn-page active">1</button>
+                        <button class="btn-icon" disabled><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 MedShop Zenith. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Medicine Form Modal -->
+    <div class="modal" id="medicine-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Medicine</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="medicine-form">
+                    <input type="hidden" id="medicine-id">
+                    <div class="form-group">
+                        <label for="medicine-name">Medicine Name</label>
+                        <input type="text" id="medicine-name" name="title" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicine-specification">Specification</label>
+                            <input type="text" id="medicine-specification" name="Specification" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="medicine-form">Form</label>
+                            <select id="medicine-form" name="Form">
+                                <option value="Tablet">Tablet</option>
+                                <option value="Capsule">Capsule</option>
+                                <option value="Syrup">Syrup</option>
+                                <option value="Injection">Injection</option>
+                                <option value="Cream">Cream</option>
+                                <option value="Ointment">Ointment</option>
+                                <option value="Drops">Drops</option>
+                                <option value="Powder">Powder</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="medicine-company">Company Name</label>
+                        <input type="text" id="medicine-company" name="CompanyName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicine-batch">Batch Number</label>
+                            <input type="text" id="medicine-batch" name="BatchNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="medicine-expiry">Expiry Date</label>
+                            <input type="date" id="medicine-expiry" name="ExpiryDate" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicine-stock">Stock Quantity</label>
+                            <input type="number" id="medicine-stock" name="StockQuantity" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="medicine-price">Unit Price (₹)</label>
+                            <input type="number" id="medicine-price" name="UnitPrice" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="medicine-rack">Rack Location</label>
+                        <input type="text" id="medicine-rack" name="RackLocation">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" id="cancel-medicine">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="save-medicine">Save Medicine</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this medicine? This action cannot be undone.</p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-delete">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script src="/static/crud.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const addMedicineBtn = document.getElementById('add-medicine-btn');
+            const medicineModal = document.getElementById('medicine-modal');
+            const deleteModal = document.getElementById('delete-modal');
+            const medicineForm = document.getElementById('medicine-form');
+            const modalTitle = document.getElementById('modal-title');
+            const medicineIdInput = document.getElementById('medicine-id');
+            const cancelMedicineBtn = document.getElementById('cancel-medicine');
+            const cancelDeleteBtn = document.getElementById('cancel-delete');
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            const closeModalBtns = document.querySelectorAll('.close-modal');
+            const medicineSearchInput = document.getElementById('medicine-search');
+            
+            let currentDeleteId = null;
+            
+            // Open modal for adding a new medicine
+            addMedicineBtn.addEventListener('click', function() {
+                modalTitle.textContent = 'Add New Medicine';
+                medicineForm.reset();
+                medicineIdInput.value = '';
+                medicineModal.classList.add('show');
+            });
+            
+            // Close modals
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    medicineModal.classList.remove('show');
+                    deleteModal.classList.remove('show');
+                });
+            });
+            
+            cancelMedicineBtn.addEventListener('click', function() {
+                medicineModal.classList.remove('show');
+            });
+            
+            cancelDeleteBtn.addEventListener('click', function() {
+                deleteModal.classList.remove('show');
+            });
+            
+            // Handle form submission for adding/updating medicine
+            medicineForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Collect form data
+                const formData = {
+                    title: document.getElementById('medicine-name').value,
+                    Specification: document.getElementById('medicine-specification').value,
+                    Form: document.getElementById('medicine-form').value,
+                    CompanyName: document.getElementById('medicine-company').value,
+                    BatchNumber: document.getElementById('medicine-batch').value,
+                    ExpiryDate: document.getElementById('medicine-expiry').value,
+                    StockQuantity: parseInt(document.getElementById('medicine-stock').value),
+                    UnitPrice: parseFloat(document.getElementById('medicine-price').value),
+                    RackLocation: document.getElementById('medicine-rack').value
+                };
+                
+                try {
+                    const medicineId = medicineIdInput.value;
+                    
+                    if (medicineId) {
+                        // Update existing medicine
+                        await MedShopCRUD.updateMedicine(medicineId, formData);
+                    } else {
+                        // Add new medicine
+                        await MedShopCRUD.addMedicine(formData);
+                    }
+                    
+                    // Close the modal and refresh the page
+                    medicineModal.classList.remove('show');
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Error saving medicine:', error);
+                }
+            });
+            
+            // Handle edit button clicks
+            document.addEventListener('click', async function(e) {
+                if (e.target.closest('.edit-medicine')) {
+                    const btn = e.target.closest('.edit-medicine');
+                    const medicineId = btn.getAttribute('data-id');
+                    
+                    try {
+                        const medicine = await MedShopCRUD.getMedicine(medicineId);
+                        
+                        if (medicine) {
+                            // Fill the form with medicine data
+                            modalTitle.textContent = 'Edit Medicine';
+                            medicineIdInput.value = medicine.MedicineID;
+                            document.getElementById('medicine-name').value = medicine.title || '';
+                            document.getElementById('medicine-specification').value = medicine.Specification || '';
+                            document.getElementById('medicine-form').value = medicine.Form || 'Tablet';
+                            document.getElementById('medicine-company').value = medicine.CompanyName || '';
+                            document.getElementById('medicine-batch').value = medicine.BatchNumber || '';
+                            document.getElementById('medicine-expiry').value = medicine.ExpiryDate ? medicine.ExpiryDate.split('T')[0] : '';
+                            document.getElementById('medicine-stock').value = medicine.StockQuantity || 0;
+                            document.getElementById('medicine-price').value = medicine.UnitPrice || 0;
+                            document.getElementById('medicine-rack').value = medicine.RackLocation || '';
+                            
+                            // Show the modal
+                            medicineModal.classList.add('show');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching medicine details:', error);
+                    }
+                }
+            });
+            
+            // Handle delete button clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-medicine')) {
+                    const btn = e.target.closest('.delete-medicine');
+                    currentDeleteId = btn.getAttribute('data-id');
+                    deleteModal.classList.add('show');
+                }
+            });
+            
+            // Handle delete confirmation
+            confirmDeleteBtn.addEventListener('click', async function() {
+                if (currentDeleteId) {
+                    try {
+                        await MedShopCRUD.deleteMedicine(currentDeleteId);
+                        deleteModal.classList.remove('show');
+                        
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-id="${currentDeleteId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                        
+                        // Update the total count
+                        const totalElement = document.querySelector('.card-value');
+                        if (totalElement) {
+                            const currentTotal = parseInt(totalElement.textContent);
+                            totalElement.textContent = currentTotal - 1;
+                        }
+                    } catch (error) {
+                        console.error('Error deleting medicine:', error);
+                    }
+                }
+            });
+            
+            // Search functionality
+            medicineSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#medicines-table tbody tr');
+                
+                rows.forEach(row => {
+                    const medicineName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                    const specification = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                    const company = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                    
+                    if (medicineName.includes(searchTerm) || 
+                        specification.includes(searchTerm) || 
+                        company.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

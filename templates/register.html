@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create User - MedShop Zenith</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with Navigation -->
+        <header class="main-header">
+            <div class="brand">
+                <i class="fas fa-clinic-medical"></i>
+                <h1>MedShop Zenith</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="/sale"><i class="fas fa-cash-register"></i> Sales</a></li>
+                    <li><a href="/inventory"><i class="fas fa-pills"></i> Inventory</a></li>
+                    <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    <li class="active"><a href="/users"><i class="fas fa-users"></i> Users</a></li>
+                </ul>
+            </nav>
+            <div class="user-menu">
+                <button class="btn-icon"><i class="fas fa-bell"></i></button>
+                <div class="user-dropdown">
+                    <button class="btn-icon"><i class="fas fa-user-circle"></i></button>
+                    <div class="dropdown-menu">
+                        <a href="/profile"><i class="fas fa-user"></i> Profile</a>
+                        <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h2><i class="fas fa-user-plus"></i> Create New User</h2>
+                <nav class="breadcrumb">
+                    <a href="/">Dashboard</a> / 
+                    <a href="/users">Users</a> / 
+                    <span>Create User</span>
+                </nav>
+            </div>
+
+            <!-- Alert Messages -->
+            <div class="alert-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                            <span>{{ message }}</span>
+                            <button class="close-alert"><i class="fas fa-times"></i></button>
+                        </div>
+                    {% endfor %}
+                {% endwith %}
+            </div>
+
+            <!-- User Form Card -->
+            <div class="form-card">
+                <div class="form-header">
+                    <h3>User Information</h3>
+                    <p>Create a new user account</p>
+                </div>
+                
+                <form method="POST" class="form-grid">
+                    <div class="form-group">
+                        <div class="floating-label">
+                            <input type="text" name="username" id="username" placeholder=" " required>
+                            <label for="username">Username</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="floating-label">
+                            <input type="password" name="password" id="password" placeholder=" " required>
+                            <label for="password">Password</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="floating-label">
+                            <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required>
+                            <label for="confirm_password">Confirm Password</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="floating-label">
+                            <select name="role" id="role" required>
+                                <option value="" disabled selected>Select a role</option>
+                                <option value="Admin">Administrator</option>
+                                <option value="Pharmacist">Pharmacist</option>
+                            </select>
+                            <label for="role">User Role</label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="window.location.href='/users'">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 MedShop Zenith. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script>
+        // Password confirmation validation
+        document.getElementById('confirm_password').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            
+            if (password !== confirmPassword) {
+                this.setCustomValidity('Passwords do not match');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    </script>
+</body>
+</html>

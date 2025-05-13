@@ -1,0 +1,92 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 199 85% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 199 85% 50%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 199 85% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 199 85% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 199 85% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Custom floating label */
+  .floating-input {
+    @apply relative;
+  }
+
+  .floating-input input, .floating-input select {
+    @apply h-14 pt-4 px-3 pb-2 w-full border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-medblue transition-all duration-200;
+  }
+
+  .floating-input label {
+    @apply absolute left-3 transition-all duration-200 text-gray-500 pointer-events-none;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .floating-input input:focus + label,
+  .floating-input input:not(:placeholder-shown) + label,
+  .floating-input select:focus + label,
+  .floating-input select:not([value=""]) + label {
+    @apply text-xs text-medblue;
+    top: 30%;
+  }
+}
+
+@layer components {
+  .dashboard-card {
+    @apply bg-white rounded-xl shadow-md p-5 hover:shadow-lg transition-shadow duration-200;
+  }
+  
+  .btn-primary {
+    @apply bg-medblue text-white px-4 py-2 rounded-md hover:bg-medblue-dark transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-medblue border border-medblue px-4 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200;
+  }
+}
